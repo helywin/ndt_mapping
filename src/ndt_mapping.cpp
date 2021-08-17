@@ -38,7 +38,7 @@ ndt_mapping::ndt_mapping()
     nh_.param("scan_rate", scan_rate_, 10.0);
     nh_.param("min_scan_range", min_scan_range_, 5.0);
     nh_.param("max_scan_range", max_scan_range_, 200.0);
-    nh_.param("use_imu", use_imu_, false);
+    nh_.param("use_imu", use_imu_, true);
 
     initial_scan_loaded = 0;
     min_add_scan_shift_ = 1.0;
@@ -102,7 +102,49 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
     //static tf::TransformBroadcaster br;
     tf::Transform transform;
 
-    pcl::fromROSMsg(*input, tmp);
+//    std::cout << "fields: " << pcl::getFieldsList(*input) << std::endl;
+//    pcl::PCLPointCloud2 pcl_pc2;
+//    pcl_conversions::toPCL(*input, pcl_pc2);
+//    pcl::MsgFieldMap field_map;
+//    pcl::createMapping<pcl::PointXYZI>(pcl_pc2.fields, field_map);
+//    std::cout << "fields: ";
+//    auto fields = pcl_pc2.fields;
+//    std::for_each(fields.begin(), fields.end(), [](const pcl::PCLPointField &f) {
+//        std::cout << f.name << " ";
+//    });
+//    std::cout << std::endl;
+//    fromPCLPointCloud2(pcl_pc2, tmp, field_map);
+//    pcl::fromPCLPointCloud2(pcl_pc2, tmp);
+
+//    pcl::fromROSMsg(*input, tmp);
+    // 77724
+    // float32 float32 float32 uint8 uint16
+    int index = 0;
+    while (index < input->data.size()) {
+        float x = *(float *) ((input->data.data() + index + input->fields[0].offset));
+        float y = *(float *) ((input->data.data() + index + input->fields[1].offset));
+        float z = *(float *) ((input->data.data() + index + input->fields[2].offset));
+        uint8_t i = *(uint8_t *) ((input->data.data() + index + input->fields[3].offset));
+//        uint16_t r = *(uint16_t *) ((input->data.data() + index + input->fields[4].offset));
+        index += input->point_step;
+//        std::cout << " x:" << x
+//                  << " y:" << y
+//                  << " z:" << z
+//                  << " i:" << (int) i
+//                  << " r:" << r
+//                  << std::endl;
+        pcl::PointXYZI p;
+        if (std::isnan(x) || std::isinf(x) ||
+            std::isnan(y) || std::isinf(y) ||
+            std::isnan(z) || std::isinf(z)) {
+            continue;
+        }
+        p.x = x;
+        p.y = y;
+        p.z = z;
+        p.intensity = i;
+        tmp.push_back(p);
+    }
     double r;
     Eigen::Vector3d point_pos;
     pcl::PointXYZI p;
@@ -149,7 +191,7 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
         if (min_scan_range_ < r &&
             r < max_scan_range_ &&
             p.z < 1.5
-            ) {
+                ) {
             scan.push_back(p);
         }
     }
