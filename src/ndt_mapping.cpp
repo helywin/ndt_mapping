@@ -43,7 +43,7 @@ ndt_mapping::ndt_mapping()
     initial_scan_loaded = 0;
     min_add_scan_shift_ = 1.0;
 
-    // 初始变换
+    // 初始变换（小车坐标系到地图坐标系）
     _tf_x = 0.0, _tf_y = 0.0, _tf_z = 0.0, _tf_roll = 0.0, _tf_pitch = 0.0, _tf_yaw = 0.0;
 
     std::cout << "incremental_voxel_update: " << _incremental_voxel_update << std::endl;
@@ -51,6 +51,7 @@ ndt_mapping::ndt_mapping()
               << _tf_z << ", "
               << _tf_roll << ", " << _tf_pitch << ", " << _tf_yaw << ")" << std::endl;
 
+    // 计算小车初始的变换矩阵
     Eigen::Translation3f tl_btol(_tf_x, _tf_y, _tf_z);                 // tl: translation
     Eigen::AngleAxisf rot_x_btol(_tf_roll, Eigen::Vector3f::UnitX());  // rot: rotation
     Eigen::AngleAxisf rot_y_btol(_tf_pitch, Eigen::Vector3f::UnitY());
@@ -59,8 +60,10 @@ ndt_mapping::ndt_mapping()
     // base_link to local / local to base_link
     tf_ltob_ = tf_btol_.inverse();
 
+    // 设置帧id
     map_.header.frame_id = "map";
 
+    // 小车初始位置
     current_pose_.x = current_pose_.y = current_pose_.z = 0.0;
     current_pose_.roll = current_pose_.pitch = current_pose_.yaw = 0.0;
     previous_pose_.x = previous_pose_.y = previous_pose_.z = 0.0;
@@ -89,8 +92,14 @@ ndt_mapping::ndt_mapping()
 ndt_mapping::~ndt_mapping()
 {};
 
+/**
+ * @brief 点云回调函数
+ * 
+ * @param input 
+ */
 void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &input)
 {
+    // XYZI中I代表点云中点的强度,也就是反射率
     pcl::PointCloud<pcl::PointXYZI> tmp, scan;
     pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_scan_ptr(new pcl::PointCloud<pcl::PointXYZI>());
     pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_scan_ptr(
@@ -151,6 +160,7 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
     for (pcl::PointCloud<pcl::PointXYZI>::const_iterator item = tmp.begin();
          item != tmp.end(); item++) {
         if (use_imu_) {
+            // todo: EKF融合imu和里程计
             // deskew(TODO:inplement of predicting pose by imu)
             point_pos.x() = (double) item->x;
             point_pos.y() = (double) item->y;
