@@ -53,3 +53,4 @@ CATKIN_IGNORE
 .ccls-cache/
 0.pcd
 .idea/
+cmake-build-*/

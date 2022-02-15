@@ -111,6 +111,7 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
     //static tf::TransformBroadcaster br;
     tf::Transform transform;
 
+    // 由于速腾激光雷达的点云格式不标准（修改了驱动）,需要按通过自己的方式解析
 //    std::cout << "fields: " << pcl::getFieldsList(*input) << std::endl;
 //    pcl::PCLPointCloud2 pcl_pc2;
 //    pcl_conversions::toPCL(*input, pcl_pc2);
@@ -126,7 +127,7 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
 //    pcl::fromPCLPointCloud2(pcl_pc2, tmp);
 
 //    pcl::fromROSMsg(*input, tmp);
-    // 77724
+    //
     // float32 float32 float32 uint8 uint16
     int index = 0;
     while (index < input->data.size()) {
@@ -143,6 +144,7 @@ void ndt_mapping::points_callback(const sensor_msgs::PointCloud2::ConstPtr &inpu
 //                  << " r:" << r
 //                  << std::endl;
         pcl::PointXYZI p;
+        // 丢弃不正常的数据
         if (std::isnan(x) || std::isinf(x) ||
             std::isnan(y) || std::isinf(y) ||
             std::isnan(z) || std::isinf(z)) {
